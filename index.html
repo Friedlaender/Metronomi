@@ -225,7 +225,378 @@
 
     <script>
         // *** HIER WERDEN WIR DEN JAVASCRIPT-CODE HINZUFÜGEN ***
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PWA Metronom</title>
+    <link rel="manifest" href="./manifest.json">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
+    <meta name="apple-mobile-web-app-title" content="Metronom">
+    <link rel="apple-touch-icon" href="./icons/icon-192x192.png">
+    <meta name="theme-color" content="#3498db">
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(to right bottom, #3498db, #2c3e50); /* Blauer Verlauf */
+            color: white;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            overflow: hidden; /* Verhindert Scrollbalken bei Animationen */
+        }
+        .container {
+            background-color: rgba(255, 255, 255, 0.1);
+            padding: 40px 30px;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            text-align: center;
+            width: 90%;
+            max-width: 450px;
+            backdrop-filter: blur(5px); /* Leichter Unschärfe-Effekt */
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        h1 {
+            font-size: 3em;
+            margin-bottom: 30px;
+            letter-spacing: 2px;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+        .controls {
+            margin-bottom: 30px;
+        }
+        .controls label {
+            display: block;
+            font-size: 1.2em;
+            margin-bottom: 10px;
+            font-weight: 600;
+        }
+        #bpmInput {
+            width: 80px;
+            padding: 10px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1.5em;
+            text-align: center;
+            background-color: rgba(255, 255, 255, 0.9);
+            color: #2c3e50;
+            box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.2);
+        }
+        #bpmSlider {
+            width: 80%;
+            margin-top: 15px;
+            -webkit-appearance: none;
+            appearance: none;
+            height: 8px;
+            background: rgba(255, 255, 255, 0.5);
+            border-radius: 5px;
+            outline: none;
+            transition: background 0.2s ease-in-out;
+        }
+        #bpmSlider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 25px;
+            height: 25px;
+            border-radius: 50%;
+            background: #e74c3c; /* Roter Griff */
+            cursor: pointer;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+            transition: background 0.3s ease;
+        }
+        #bpmSlider::-moz-range-thumb {
+            width: 25px;
+            height: 25px;
+            border-radius: 50%;
+            background: #e74c3c;
+            cursor: pointer;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+            transition: background 0.3s ease;
+        }
 
+        .tempo-display {
+            font-size: 3em;
+            font-weight: bold;
+            margin-top: 20px;
+            color: #f1c40f; /* Gelbe Farbe für BPM */
+            min-height: 1.2em; /* Platzhalter */
+        }
+
+        .buttons button {
+            background-color: #e74c3c; /* Roter Start/Stopp Button */
+            color: white;
+            border: none;
+            border-radius: 10px;
+            padding: 15px 30px;
+            font-size: 1.8em;
+            cursor: pointer;
+            box-shadow: 0 5px 15px rgba(231, 76, 60, 0.4);
+            transition: background-color 0.3s ease, transform 0.2s ease, box-shadow 0.3s ease;
+            margin: 0 10px;
+            min-width: 150px;
+        }
+        .buttons button:hover {
+            background-color: #c0392b;
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(231, 76, 60, 0.6);
+        }
+        .buttons button:active {
+            transform: translateY(0);
+            box-shadow: 0 2px 8px rgba(231, 76, 60, 0.4);
+        }
+
+        .buttons button#stopBtn {
+            background-color: #95a5a6; /* Grau für Stopp, wenn nicht aktiv */
+            box-shadow: 0 5px 15px rgba(149, 165, 166, 0.4);
+        }
+        .buttons button#stopBtn:hover {
+            background-color: #7f8c8d;
+            box-shadow: 0 8px 20px rgba(149, 165, 166, 0.6);
+        }
+
+        .buttons button.active {
+            background-color: #27ae60; /* Grün, wenn Metronom läuft */
+            box-shadow: 0 5px 15px rgba(39, 174, 96, 0.4);
+        }
+        .buttons button.active:hover {
+             background-color: #229954;
+             box-shadow: 0 8px 20px rgba(39, 174, 96, 0.6);
+        }
+
+        .beat-indicator {
+            width: 30px;
+            height: 30px;
+            background-color: rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            margin: 30px auto 0;
+            transition: background-color 0.1s ease-out, transform 0.1s ease-out;
+            border: 2px solid rgba(255, 255, 255, 0.5);
+        }
+        .beat-indicator.active {
+            background-color: #f1c40f; /* Gelb bei Schlag */
+            transform: scale(1.1);
+        }
+        .beat-indicator.first-beat {
+            background-color: #3498db; /* Andere Farbe für den ersten Schlag */
+            transform: scale(1.2);
+        }
+
+        .time-signature {
+            margin-top: 25px;
+        }
+        .time-signature select {
+            padding: 8px 12px;
+            border-radius: 8px;
+            border: none;
+            background-color: rgba(255, 255, 255, 0.9);
+            color: #2c3e50;
+            font-size: 1.1em;
+            cursor: pointer;
+        }
+
+        /* Responsive Anpassungen */
+        @media (max-width: 600px) {
+            .container {
+                padding: 30px 20px;
+                max-width: 100%;
+                border-radius: 10px;
+            }
+            h1 {
+                font-size: 2.2em;
+            }
+            .buttons button {
+                padding: 12px 20px;
+                font-size: 1.4em;
+                margin: 0 5px;
+            }
+            #bpmInput {
+                font-size: 1.2em;
+                width: 70px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Metronom</h1>
+
+        <div class="controls">
+            <label for="bpmInput">Tempo (BPM):</label>
+            <input type="number" id="bpmInput" value="120" min="40" max="240">
+            <input type="range" id="bpmSlider" value="120" min="40" max="240">
+        </div>
+
+        <div class="tempo-display" id="tempoDisplay">120 BPM</div>
+
+        <div class="time-signature">
+            <label for="timeSignatureSelect">Taktart:</label>
+            <select id="timeSignatureSelect">
+                <option value="4">4/4</option>
+                <option value="3">3/4</option>
+                <option value="2">2/4</option>
+                <option value="6">6/8</option>
+            </select>
+        </div>
+
+        <div class="buttons">
+            <button id="startBtn">Start</button>
+            <button id="stopBtn" disabled>Stop</button>
+        </div>
+
+        <div class="beat-indicator" id="beatIndicator"></div>
+    </div>
+
+    <script>
+        const bpmInput = document.getElementById('bpmInput');
+        const bpmSlider = document.getElementById('bpmSlider');
+        const tempoDisplay = document.getElementById('tempoDisplay');
+        const startBtn = document.getElementById('startBtn');
+        const stopBtn = document.getElementById('stopBtn');
+        const beatIndicator = document.getElementById('beatIndicator');
+        const timeSignatureSelect = document.getElementById('timeSignatureSelect');
+
+        let audioContext;
+        let oscillator;
+        let gainNode;
+        let intervalId;
+        let isPlaying = false;
+        let currentBeat = 0;
+        let beatsPerMeasure = parseInt(timeSignatureSelect.value); // Initialwert aus der Auswahl
+
+        // Funktion zum Abspielen eines Klicks
+        function playClick(isFirstBeat) {
+            if (!audioContext) {
+                // Initialisiere AudioContext bei der ersten Benutzerinteraktion
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                gainNode = audioContext.createGain();
+                gainNode.connect(audioContext.destination);
+                gainNode.gain.value = 0.5; // Lautstärke
+            }
+
+            oscillator = audioContext.createOscillator();
+            oscillator.connect(gainNode);
+
+            if (isFirstBeat) {
+                oscillator.frequency.setValueAtTime(880, audioContext.currentTime); // Höherer Ton für den ersten Schlag
+            } else {
+                oscillator.frequency.setValueAtTime(440, audioContext.currentTime); // Standard-Ton
+            }
+
+            oscillator.start(audioContext.currentTime);
+            oscillator.stop(audioContext.currentTime + 0.05); // Kurzer Klick (0.05 Sekunden)
+        }
+
+        // Funktion zum Aktualisieren der BPM-Anzeige
+        function updateBPMDisplay(bpm) {
+            tempoDisplay.textContent = `${bpm} BPM`;
+        }
+
+        // Event Listener für BPM-Eingabe und Slider
+        bpmInput.addEventListener('input', () => {
+            const bpm = parseInt(bpmInput.value);
+            bpmSlider.value = bpm;
+            updateBPMDisplay(bpm);
+            if (isPlaying) {
+                stopMetronome();
+                startMetronome();
+            }
+        });
+
+        bpmSlider.addEventListener('input', () => {
+            const bpm = parseInt(bpmSlider.value);
+            bpmInput.value = bpm;
+            updateBPMDisplay(bpm);
+            if (isPlaying) {
+                stopMetronome();
+                startMetronome();
+            }
+        });
+
+        // Event Listener für Taktart-Auswahl
+        timeSignatureSelect.addEventListener('change', () => {
+            beatsPerMeasure = parseInt(timeSignatureSelect.value);
+            currentBeat = 0; // Reset des Beats bei Taktartwechsel
+            if (isPlaying) {
+                stopMetronome();
+                startMetronome();
+            }
+        });
+
+        // Funktion zum Starten des Metronoms
+        function startMetronome() {
+            if (isPlaying) return;
+
+            isPlaying = true;
+            startBtn.classList.add('active');
+            stopBtn.classList.remove('active');
+            startBtn.disabled = true;
+            stopBtn.disabled = false;
+            currentBeat = 0; // Beim Start immer bei 0 beginnen
+
+            const bpm = parseInt(bpmInput.value);
+            const intervalTime = (60 / bpm) * 1000; // Millisekunden pro Schlag
+
+            intervalId = setInterval(() => {
+                const isFirstBeat = (currentBeat % beatsPerMeasure === 0);
+                playClick(isFirstBeat);
+
+                // Beat-Indikator visuell aktualisieren
+                beatIndicator.classList.remove('active', 'first-beat');
+                void beatIndicator.offsetWidth; // Trigger reflow for re-animation
+                if (isFirstBeat) {
+                    beatIndicator.classList.add('first-beat');
+                } else {
+                    beatIndicator.classList.add('active');
+                }
+
+                currentBeat++;
+                if (currentBeat >= beatsPerMeasure) {
+                    currentBeat = 0; // Reset für den nächsten Takt
+                }
+            }, intervalTime);
+        }
+
+        // Funktion zum Stoppen des Metronoms
+        function stopMetronome() {
+            if (!isPlaying) return;
+
+            isPlaying = false;
+            clearInterval(intervalId);
+            startBtn.classList.remove('active');
+            stopBtn.classList.add('active');
+            startBtn.disabled = false;
+            stopBtn.disabled = true;
+            beatIndicator.classList.remove('active', 'first-beat'); // Indikator zurücksetzen
+            currentBeat = 0; // Beat-Zähler zurücksetzen
+        }
+
+        // Event Listener für Start/Stop Buttons
+        startBtn.addEventListener('click', startMetronome);
+        stopBtn.addEventListener('click', stopMetronome);
+
+        // Initialisierung beim Laden der Seite
+        updateBPMDisplay(parseInt(bpmInput.value)); // Anzeige beim Start aktualisieren
+
+        // Registriere den Service Worker (am Ende der Datei, aber in den <script>-Tags)
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./service-worker.js')
+                    .then(registration => {
+                        console.log('Service Worker registriert:', registration);
+                    })
+                    .catch(error => {
+                        console.error('Service Worker Registrierung fehlgeschlagen:', error);
+                    });
+            });
+        }
+    </script>
+</body>
+</html>
         // Registriere den Service Worker (am Ende der Datei, aber in den <script>-Tags)
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
